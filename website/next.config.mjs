@@ -2,6 +2,19 @@ import { createMDX } from "fumadocs-mdx/next";
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  // Every component page reads its source from the reacticx-codebase R2
+  // bucket at build time (see src/lib/codebase.ts), with its own retry/backoff
+  // for 429s. The default 60s page-generation timeout is shorter than that
+  // backoff can need under load, so pages were being killed and retried by
+  // Next before codebase.ts's own retries had a chance to succeed — compounding
+  // the rate-limit instead of riding it out.
+  staticPageGenerationTimeout: 180,
+  // Fewer prerender workers means fewer concurrent requests against the same
+  // bucket. codebase.ts already caps each worker at 6 in-flight requests; nine
+  // workers doing that at once is what provokes the 429s in the first place.
+  experimental: {
+    cpus: 4,
+  },
   // Appending `.mdx` to any docs URL serves its markdown source. The section
   // segment is part of the page slug, so it has to survive the rewrite.
   async rewrites() {
