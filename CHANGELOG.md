@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 
 
+## <small>1.24.1 (2026-09-08)</small>
+
+* fix(website): raise build timeouts and cap workers to avoid R2 429s ([3e433da](https://github.com/rit3zh/reacticx/commit/3e433da))
+
 ## 1.24.0 (2026-09-08)
 
 * feat(website): add sponsors page with Aurora background and coffee widget ([5331db9](https://github.com/rit3zh/reacticx/commit/5331db9))
