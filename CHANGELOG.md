@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 
 
+## 1.24.0 (2026-09-08)
+
+* feat(website): add sponsors page with Aurora background and coffee widget ([5331db9](https://github.com/rit3zh/reacticx/commit/5331db9))
+
 ## <small>1.23.2 (2026-09-04)</small>
 
 * perf(website): stop the landing and catalogue pages juddering on mobile ([8436c18](https://github.com/rit3zh/reacticx/commit/8436c18))
