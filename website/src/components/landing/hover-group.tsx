@@ -142,6 +142,11 @@ export function HoverGroup({
 /**
  * Props to spread onto a hover target. Returns handlers only — the element is
  * read off the event, so items keep whatever ref they already need.
+ *
+ * A finger is not a hover. Touch fires `pointerenter` on every touchstart, so
+ * each scroll that began on a card measured the group — a forced layout in the
+ * middle of the gesture — and flashed the plate onto that card until the
+ * finger lifted. Touch is ignored outright; focus still moves the highlight.
  */
 export function useHoverItem() {
   const context = React.useContext(HoverGroupContext);
@@ -150,8 +155,10 @@ export function useHoverItem() {
     () => ({
       onFocus: (event: React.FocusEvent<HTMLElement>) =>
         context?.enter(event.currentTarget),
-      onPointerEnter: (event: React.PointerEvent<HTMLElement>) =>
-        context?.enter(event.currentTarget),
+      onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
+        if (event.pointerType === "touch") return;
+        context?.enter(event.currentTarget);
+      },
     }),
     [context],
   );

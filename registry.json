@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "totalComponents": 163,
+  "totalComponents": 164,
   "categories": [
     "atoms",
     "base",
@@ -437,6 +437,18 @@
       "path": "src/components/organisms/circular-progress",
       "folders": [],
       "files": [
+        "index.tsx",
+        "types.ts"
+      ]
+    },
+    "circular-status-bar-iphone-duo": {
+      "name": "circular-status-bar-iphone-duo",
+      "category": "micro-interactions",
+      "path": "src/components/micro-interactions/circular-status-bar-iphone-duo",
+      "folders": [],
+      "files": [
+        "conf.ts",
+        "helper.ts",
         "index.tsx",
         "types.ts"
       ]

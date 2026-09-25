@@ -90,13 +90,7 @@ export function SwapText({
       )}
 
       <span className="relative inline-block">
-        <Phrase
-          key={`in-${value}`}
-          mode="in"
-          reduced={reduced}
-          spread={spread}
-          text={value}
-        />
+        <Phrase key={`in-${value}`} mode="in" spread={spread} text={value} />
       </span>
     </span>
   );
@@ -118,101 +112,56 @@ export function Phrase({
   text,
   mode,
   spread,
-  reduced,
 }: {
   text: string;
   mode: "in" | "out";
   spread: number;
-  reduced?: boolean;
 }) {
-  // "in" starts displaced and settles; "out" starts at rest and leaves.
-  const [atRest, setAtRest] = React.useState(mode === "out");
-
   /**
-   * Two frames, not one. A single `requestAnimationFrame` can land before the
-   * browser has resolved style for the displaced first render, in which case
-   * the two states collapse into one and the glyph simply appears — which is
-   * what the headline's occasional hard pop was. Waiting for the frame after
-   * guarantees the start state has been through style and paint, so every
-   * glyph has something to transition from.
+   * Whether this copy has been handed its motion yet.
+   *
+   * The movement is a keyframe animation in `globals.css`, which carries its
+   * own start frame, so there is no longer a start state that has to survive a
+   * round of style first — the two-frame wait this used to need for exactly
+   * that is gone. What is kept is the start *time*: the first phrase on the
+   * hero still waits for hydration, so it arrives with the `Chars` beside it
+   * rather than a second ahead of them, and an arriving and a leaving copy
+   * that mount together are armed in the same commit.
    */
-  React.useEffect(() => {
-    let inner = 0;
-    const outer = requestAnimationFrame(() => {
-      inner = requestAnimationFrame(() => setAtRest(mode === "in"));
-    });
-    return () => {
-      cancelAnimationFrame(outer);
-      cancelAnimationFrame(inner);
-    };
-  }, [mode]);
+  const [armed, setArmed] = React.useState(false);
+
+  React.useEffect(() => setArmed(true), []);
 
   const chars = [...text];
   const animating = text.replace(/\s/g, "").length;
   const step = (DURATION * CHAR.stagger * spread) / Math.max(animating, 1);
 
-  /**
-   * An arriving phrase stays mounted until the next swap, which on the hero is
-   * seconds away — so the `will-change` below outlived the motion it was for
-   * and held a compositor layer per glyph the whole time. A leaving phrase is
-   * unmounted the moment it finishes, so it never needs standing down.
-   */
-  const [done, setDone] = React.useState(false);
-
   // Total time from the first glyph starting to the last one settling.
   const span = Math.max(animating - 1, 0) * step + DURATION;
-
-  React.useEffect(() => {
-    if (mode !== "in" || reduced) return;
-
-    setDone(false);
-    const timer = window.setTimeout(() => setDone(true), span * 1000 + 60);
-    return () => window.clearTimeout(timer);
-  }, [mode, reduced, span, text]);
-
-  // Enter rises from below, exit continues upward — one direction of travel.
-  const displaced =
-    mode === "in"
-      ? `translateY(${CHAR.y}em) scale(${CHAR.scale}) rotateZ(${CHAR.rotate}deg)`
-      : `translateY(-${CHAR.y}em) scale(${CHAR.scale}) rotateZ(${CHAR.rotate}deg)`;
 
   /**
    * The blur is one filter on the phrase rather than one per glyph.
    *
-   * `filter` is not a compositable property, so every animated glyph was a
-   * separate per-frame CPU blur — and with an outgoing phrase overlapping an
-   * incoming one, a four-word headline was running two dozen of them at once
-   * while the wrapper's width tween relaid out the line each frame. Lifting it
-   * to the wrapper leaves two, and because the glyphs underneath still carry
-   * the stagger, the string still reads as resolving letter by letter.
-   *
-   * Opacity and transform stay per glyph: both are compositable, so the
-   * stagger that carries the whole effect costs nothing.
+   * With an outgoing phrase overlapping an incoming one, per-glyph blurs had a
+   * four-word headline running two dozen of them at once while the wrapper's
+   * width tween relaid out the line each frame. Lifting it to the wrapper
+   * leaves two, and because the glyphs underneath still carry the stagger, the
+   * string still reads as resolving letter by letter. The wrapper's blur runs
+   * across the phrase's whole span; enter rises from below, exit continues
+   * upward — one direction of travel.
    */
   return (
     <span
       aria-label={mode === "in" ? text : undefined}
-      style={{
-        display: "inline-block",
-        filter: atRest ? "blur(0px)" : `blur(${CHAR.blur}em)`,
-        transition: reduced ? "none" : `filter ${span}s ${EASE_NUMERIC}`,
-        willChange: done || reduced ? undefined : "filter",
-      }}
+      data-rx-phrase={armed ? mode : `${mode}-idle`}
+      style={{ display: "inline-block", animationDuration: `${span}s` }}
     >
       {chars.map((char, charIndex) => (
         <span
           aria-hidden
-          className="inline-block"
+          className="rx-glyph inline-block"
           key={`${char}-${charIndex}`}
-          style={{
-            opacity: atRest ? 1 : 0,
-            transform: atRest ? "none" : displaced,
-            transition: reduced
-              ? "none"
-              : `opacity ${DURATION}s ${EASE_NUMERIC} ${charIndex * step}s,
-                 transform ${DURATION}s ${EASE_NUMERIC} ${charIndex * step}s`,
-            willChange: done || reduced ? undefined : "transform, opacity",
-          }}
+          style={{ animationDelay: `${charIndex * step}s` }}
         >
           {char === " " ? NBSP : char}
         </span>

@@ -1,28 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 /**
  * Subscribes to a media query.
  *
- * Always starts `false` so the server render and the first client render agree;
- * the real answer lands in an effect. Callers must therefore treat `false` as
- * "not yet known", which is why every use of this reads as "the expensive path
- * is the default and the cheap one is opted into" rather than the reverse.
+ * The server has no viewport, so the server render and hydration both read
+ * `false`, and the real answer lands in the commit straight after. Callers must
+ * therefore treat `false` as "not yet known", which is why every use of this
+ * reads as "the expensive path is the default and the cheap one is opted into"
+ * rather than the reverse.
+ *
+ * Only hydration pays that second render, though. It used to be a `useState`
+ * settled in an effect, which made every mount — including a client-side
+ * navigation, long after the query could have been read — render once with the
+ * wrong answer and again with the right one. On the catalogue that meant every
+ * card built its observers with the desktop margins, tore them down, and built
+ * them again, in the same frames as the page's entrance. An external store is
+ * read synchronously wherever there is a `window` to read it from.
  */
 export function useMediaQuery(query: string) {
-  const [matches, setMatches] = useState(false);
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      const media = window.matchMedia(query);
+      media.addEventListener("change", onChange);
+      return () => media.removeEventListener("change", onChange);
+    },
+    [query],
+  );
 
-  useEffect(() => {
-    const media = window.matchMedia(query);
-    const update = () => setMatches(media.matches);
-
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, [query]);
-
-  return matches;
+  return useSyncExternalStore(
+    subscribe,
+    () => window.matchMedia(query).matches,
+    () => false,
+  );
 }
 
 /**

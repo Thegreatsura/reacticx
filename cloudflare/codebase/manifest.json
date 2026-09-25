@@ -1,6 +1,6 @@
 {
   "bucket": "reacticx-codebase",
-  "updatedAt": "2026-09-04T21:48:38.876Z",
+  "updatedAt": "2026-09-25T14:39:55.765Z",
   "entries": {
     "core/atoms/pressable/index.tsx": {
       "source": "core",
@@ -939,6 +939,34 @@
       "hash": "e6b5352c5aac1839cbb6d783600190c2947cbd06c0ddf4c9c5204f13b4647f0e",
       "size": 324,
       "uploadedAt": "2026-08-27T09:57:13.502Z"
+    },
+    "core/micro-interactions/circular-status-bar-iphone-duo/conf.ts": {
+      "source": "core",
+      "path": "src/components/micro-interactions/circular-status-bar-iphone-duo/conf.ts",
+      "hash": "54b2d5629ad7de30309757ace960d16f90eb6436a1a893d1669799ef758d564e",
+      "size": 2520,
+      "uploadedAt": "2026-09-25T14:39:54.978Z"
+    },
+    "core/micro-interactions/circular-status-bar-iphone-duo/helper.ts": {
+      "source": "core",
+      "path": "src/components/micro-interactions/circular-status-bar-iphone-duo/helper.ts",
+      "hash": "89b1bd27f7b71915790ba78e27d4389cef2285ccc6233b4952710b08644e9de6",
+      "size": 6939,
+      "uploadedAt": "2026-09-25T14:39:55.173Z"
+    },
+    "core/micro-interactions/circular-status-bar-iphone-duo/index.tsx": {
+      "source": "core",
+      "path": "src/components/micro-interactions/circular-status-bar-iphone-duo/index.tsx",
+      "hash": "3891e61d9b4c4d00640ac01435eae77c6b469bc709a013ccfe1425718e8a5f08",
+      "size": 6389,
+      "uploadedAt": "2026-09-25T14:39:55.727Z"
+    },
+    "core/micro-interactions/circular-status-bar-iphone-duo/types.ts": {
+      "source": "core",
+      "path": "src/components/micro-interactions/circular-status-bar-iphone-duo/types.ts",
+      "hash": "f6ca9b804b1ef479cc3abda86d48626b45064084d4af8b97ffa79a29b62dcb25",
+      "size": 1319,
+      "uploadedAt": "2026-09-25T14:39:55.765Z"
     },
     "core/micro-interactions/elastic-slider/const.ts": {
       "source": "core",
@@ -4114,9 +4142,9 @@
     "core/registry.json": {
       "source": "core",
       "path": "src/components/registry.json",
-      "hash": "4ed16e6111f09939062e93223a51ef75ba6abdec0b17e2dec7c022c54fa58e4f",
-      "size": 46255,
-      "uploadedAt": "2026-08-30T12:35:08.555Z"
+      "hash": "5bb188eb89a261570fc12e4ca5a9da05694bdbe1259610672ad9c03358bae494",
+      "size": 46598,
+      "uploadedAt": "2026-09-25T14:39:55.255Z"
     },
     "core/screens/empty-state/v1/v1.tsx": {
       "source": "core",
@@ -4769,6 +4797,13 @@
       "size": 1338,
       "uploadedAt": "2026-08-27T09:59:16.882Z"
     },
+    "examples/circular-status-bar-iphone-duo/index.tsx": {
+      "source": "examples",
+      "path": "app/components/circular-status-bar-iphone-duo/index.tsx",
+      "hash": "cecf9525a93b1f221304e179377bcb14a5c166f22ee2e8f62e054782cc1635ba",
+      "size": 592,
+      "uploadedAt": "2026-09-25T14:39:55.198Z"
+    },
     "examples/circular-text/index.tsx": {
       "source": "examples",
       "path": "app/components/circular-text/index.tsx",
@@ -4828,9 +4863,9 @@
     "examples/dust-text/index.tsx": {
       "source": "examples",
       "path": "app/components/dust-text/index.tsx",
-      "hash": "fdb0b4bc598d421fe1d499418ea5a0d454c7fad53dd89b4d84b0a4e23391e49e",
-      "size": 1273,
-      "uploadedAt": "2026-09-04T21:48:30.998Z"
+      "hash": "7f6dc6b2464eda1f1c6c0ddaf501bf3f810fd7502d95045adf76f13f4c10f424",
+      "size": 1345,
+      "uploadedAt": "2026-09-25T14:39:55.068Z"
     },
     "examples/dynamic-text/index.tsx": {
       "source": "examples",
@@ -5339,9 +5374,9 @@
     "examples/routes.generated.ts": {
       "source": "examples",
       "path": "app/components/routes.generated.ts",
-      "hash": "0605fc7c30efb2baf1c5a20e32b1438176dfe7937281ccc00e94cd419ee80e5c",
-      "size": 31544,
-      "uploadedAt": "2026-08-30T12:35:12.804Z"
+      "hash": "78871d4da49e5e72d6fca03957a78a149f40e5a7951ead3134d41f5f5456c82d",
+      "size": 31818,
+      "uploadedAt": "2026-09-25T14:39:55.074Z"
     },
     "examples/ruler/index.tsx": {
       "source": "examples",
@@ -5514,9 +5549,9 @@
     "examples/staggered-text/index.tsx": {
       "source": "examples",
       "path": "app/components/staggered-text/index.tsx",
-      "hash": "955a7201482d1010a5125c148069db1c24d20c8431f1b681f7060573c802fca2",
-      "size": 1424,
-      "uploadedAt": "2026-08-27T09:59:39.269Z"
+      "hash": "9416de2279a61f725fc1787b74b5ce9155ff1bc163dd34f327b27b1715fcc394",
+      "size": 1428,
+      "uploadedAt": "2026-09-25T14:39:54.978Z"
     },
     "examples/switch/index.tsx": {
       "source": "examples",
@@ -5923,6 +5958,13 @@
       "hash": "489a1a5feb94d623d8ab1437a3525f9e77094c80c5945e2aa40729f07bfce72d",
       "size": 476,
       "uploadedAt": "2026-08-27T09:59:50.251Z"
+    },
+    "types/circular-status-bar-iphone-duo/index.ts": {
+      "source": "types",
+      "path": "cloudflare/codebase/types-build/circular-status-bar-iphone-duo/index.ts",
+      "hash": "f6ca9b804b1ef479cc3abda86d48626b45064084d4af8b97ffa79a29b62dcb25",
+      "size": 1319,
+      "uploadedAt": "2026-09-25T14:39:54.993Z"
     },
     "types/circular-text/index.ts": {
       "source": "types",

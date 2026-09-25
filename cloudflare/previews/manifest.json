@@ -1,6 +1,6 @@
 {
   "bucket": "reacticx-v2-previews",
-  "updatedAt": "2026-08-27T09:52:22.610Z",
+  "updatedAt": "2026-09-25T14:46:14.611Z",
   "entries": {
     "3d-carousel-preview.mp4": {
       "file": "cloudflare/v2-preview/3d-carousel-preview.mov",
@@ -365,6 +365,13 @@
       "size": 50011,
       "contentType": "video/webm",
       "uploadedAt": "2026-08-27T09:51:56.005Z"
+    },
+    "circular-status-bar-iphone-duo-preview.mp4": {
+      "file": "cloudflare/v2-preview/circular-status-bar-iphone-duo-preview.mov",
+      "hash": "6604de30a238098c99bfe7d6b3a937077a2a3821bcb58cbc868e1401d8fd88c1",
+      "size": 970533,
+      "contentType": "video/mp4",
+      "uploadedAt": "2026-09-25T14:46:14.611Z"
     },
     "circular-text-preview.mp4": {
       "file": "cloudflare/v2-preview/circular-text-preview.mov",

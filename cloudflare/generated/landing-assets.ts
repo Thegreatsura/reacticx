@@ -39,6 +39,7 @@ export type LandingAssetName =
   | "circular-list"
   | "circular-loader"
   | "circular-progress"
+  | "circular-status-bar-iphone-duo"
   | "circular-text"
   | "context-menu"
   | "coupon"
@@ -606,6 +607,20 @@ export const landingAssets = [
     width: 534,
     height: 536,
     aspect: 0.9963,
+  },
+  {
+    name: "circular-status-bar-iphone-duo",
+    title: "Circular Status Bar Iphone Duo",
+    fileName: "circular-status-bar-iphone-duo-landing-asset.mp4",
+    kind: "video",
+    contentType: "video/mp4",
+    bucketKey: "circular-status-bar-iphone-duo-landing-asset.mp4",
+    bucketURL: "https://cdn.reacticx.com/circular-status-bar-iphone-duo-landing-asset.mp4?v=d7906cc3",
+    size: 102084,
+    hash: "d7906cc317c21453",
+    width: 438,
+    height: 426,
+    aspect: 1.0282,
   },
   {
     name: "circular-text",

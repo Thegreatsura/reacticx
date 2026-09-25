@@ -245,6 +245,7 @@ export function MobileNavProvider({ children }: { children: React.ReactNode }) {
  */
 export function MobileNavShell({ children }: { children: React.ReactNode }) {
   const { active, progress, width, offset, shellRef, setOpen } = useMobileNav();
+  const shadowRef = React.useRef<HTMLDivElement>(null);
   const scrim = useTransform(progress, [0, 1], [0, SCRIM_OPACITY]);
 
   // Written straight to the node instead of through a motion component: this
@@ -262,10 +263,14 @@ export function MobileNavShell({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    const shadow = shadowRef.current;
+
     const write = (value: number) => {
       const scale = 1 - (1 - SHELL_SCALE) * value;
-      node.style.transform = `translate3d(${width * value}px, 0, 0) scale(${scale})`;
+      const transform = `translate3d(${width * value}px, 0, 0) scale(${scale})`;
+      node.style.transform = transform;
       node.style.borderRadius = `${SHELL_RADIUS * value}px`;
+      if (shadow) shadow.style.transform = transform;
     };
 
     write(progress.get());
@@ -273,35 +278,57 @@ export function MobileNavShell({ children }: { children: React.ReactNode }) {
   }, [active, width, progress, shellRef]);
 
   return (
-    <div
-      className={cn(
-        active &&
-          "fixed inset-0 z-[100] origin-left overflow-hidden shadow-[-16px_0_48px_rgba(0,0,0,0.55)] will-change-transform",
-      )}
-      ref={shellRef}
-    >
-      {/* Holds the page at the scroll position it had when it was pinned. Only
-          applied when it is actually needed, so no transform is created at rest. */}
-      <div
-        style={
-          active && offset
-            ? { transform: `translate3d(0, ${offset}px, 0)` }
-            : undefined
-        }
-      >
-        {children}
-      </div>
+    <>
+      {/* The card's shadow, on a layer of its own that rides the same
+          transform.
 
+          It used to be the card's own `box-shadow`, and the card's corner
+          radius is written on every frame of the spring. A shadow belongs to
+          the box that casts it, so every frame repainted a 48px blur down the
+          full height of the screen — on Safari, on the CPU, while the card
+          was meant to be gliding. Here the radius is fixed at its resting
+          value, so the shadow is painted once and only ever moved. Under a
+          blur that wide, a corner that is still rounding in on the card is
+          not something the eye can find in the shadow. */}
       {active ? (
-        <motion.button
-          aria-label="Close menu"
-          className="absolute inset-0 z-[1] cursor-default bg-black"
-          onClick={() => setOpen(false)}
-          style={{ opacity: scrim }}
-          type="button"
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-[99] origin-left shadow-[-16px_0_48px_rgba(0,0,0,0.55)] will-change-transform"
+          ref={shadowRef}
+          style={{ borderRadius: SHELL_RADIUS }}
         />
       ) : null}
-    </div>
+
+      <div
+        className={cn(
+          active &&
+            "fixed inset-0 z-[100] origin-left overflow-hidden will-change-transform",
+        )}
+        ref={shellRef}
+      >
+        {/* Holds the page at the scroll position it had when it was pinned. Only
+            applied when it is actually needed, so no transform is created at rest. */}
+        <div
+          style={
+            active && offset
+              ? { transform: `translate3d(0, ${offset}px, 0)` }
+              : undefined
+          }
+        >
+          {children}
+        </div>
+
+        {active ? (
+          <motion.button
+            aria-label="Close menu"
+            className="absolute inset-0 z-[1] cursor-default bg-black"
+            onClick={() => setOpen(false)}
+            style={{ opacity: scrim }}
+            type="button"
+          />
+        ) : null}
+      </div>
+    </>
   );
 }
 
@@ -353,12 +380,21 @@ const listVariants = {
  * the page card was being scaled — the one frame budget on a phone that had
  * nothing to spare. Opacity and transform alone read almost identically and
  * cost nothing.
+ *
+ * The slide is a `transform` rather than `x` for the same reason. Motion runs
+ * independent transforms like `x` from JavaScript, a style write per row per
+ * frame alongside the spring driving the card; a whole `transform` it can hand
+ * to the browser, which runs it on the compositor. Same distance, same curve.
  */
 const itemVariants = {
-  closed: { opacity: 0, x: -16, transition: { duration: 0.16 } },
+  closed: {
+    opacity: 0,
+    transform: "translateX(-16px)",
+    transition: { duration: 0.16 },
+  },
   open: {
     opacity: 1,
-    x: 0,
+    transform: "translateX(0px)",
     transition: { duration: 0.5, ease: [0.19, 1, 0.22, 1] as const },
   },
 };

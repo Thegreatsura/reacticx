@@ -34,27 +34,61 @@ export interface MetallicLogoProps {
  * is being solved, and what they keep seeing if WebGL2 is unavailable: the
  * canvas simply never paints over it. Mounting is deferred to an idle callback
  * so the solve never lands inside the first paint of the page.
+ *
+ * It also waits for the glyph to be on screen at all. Below `lg` the landing
+ * bar hides the wordmark with `display: none`, and the shader used to mount
+ * there anyway — a WebGL context, the depth solve and a render loop, on the
+ * one class of device that could least afford them, for a logo nobody could
+ * see. An element with no box never intersects, so on a phone none of that
+ * now starts; resize the window up to the desktop bar and it does.
  */
 export function MetallicLogo({ className, fallbackClassName }: MetallicLogoProps) {
+  const ref = React.useRef<HTMLSpanElement>(null);
   const [painted, setPainted] = React.useState(false);
 
   React.useEffect(() => {
-    const idle =
-      typeof window.requestIdleCallback === "function"
-        ? window.requestIdleCallback(() => setPainted(true), { timeout: 2000 })
-        : window.setTimeout(() => setPainted(true), 300);
+    const node = ref.current;
+    if (!node) return;
+
+    let idle: number | undefined;
+
+    const schedule = () => {
+      idle =
+        typeof window.requestIdleCallback === "function"
+          ? window.requestIdleCallback(() => setPainted(true), { timeout: 2000 })
+          : window.setTimeout(() => setPainted(true), 300);
+    };
+
+    const cancel = () => {
+      if (idle === undefined) return;
+      if (typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idle);
+      } else {
+        window.clearTimeout(idle);
+      }
+    };
+
+    if (typeof IntersectionObserver === "undefined") {
+      schedule();
+      return cancel;
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry?.isIntersecting) return;
+      observer.disconnect();
+      schedule();
+    });
+
+    observer.observe(node);
 
     return () => {
-      if (typeof window.cancelIdleCallback === "function") {
-        window.cancelIdleCallback(idle as number);
-      } else {
-        window.clearTimeout(idle as number);
-      }
+      observer.disconnect();
+      cancel();
     };
   }, []);
 
   return (
-    <span className={cn("relative block", className)}>
+    <span className={cn("relative block", className)} ref={ref}>
       <Logo className={cn("h-full w-full", fallbackClassName)} />
       {painted ? (
         <span className="absolute inset-0">

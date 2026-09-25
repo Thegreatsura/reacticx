@@ -145,7 +145,9 @@ export default function Aurora(props: AuroraProps) {
     const renderer = new Renderer({
       alpha: true,
       premultipliedAlpha: true,
-      antialias: true,
+      // One triangle covering the viewport has no edges inside it to smooth,
+      // so a multisampled buffer the width of the page bought nothing.
+      antialias: false,
     });
     const gl = renderer.gl;
     gl.clearColor(0, 0, 0, 0);
@@ -192,6 +194,12 @@ export default function Aurora(props: AuroraProps) {
     const mesh = new Mesh(gl, { geometry, program });
     ctn.appendChild(gl.canvas);
 
+    // Parsed when the stops change rather than on every frame: three `Color`s
+    // and four arrays a frame is steady garbage, and on a phone the collector
+    // pauses that come of it land as dropped frames in the scroll.
+    let parsedStops = colorStops;
+    let parsedArray = colorStopsArray;
+
     let animateId = 0;
     const update = (t: number) => {
       animateId = requestAnimationFrame(update);
@@ -203,19 +211,50 @@ export default function Aurora(props: AuroraProps) {
         program.uniforms.uLightMode.value =
           (propsRef.current.lightMode ?? lightMode) ? 1 : 0;
         const stops = propsRef.current.colorStops ?? colorStops;
-        program.uniforms.uColorStops.value = stops.map((hex: string) => {
-          const c = new Color(hex);
-          return [c.r, c.g, c.b];
-        });
+        if (stops !== parsedStops) {
+          parsedStops = stops;
+          parsedArray = stops.map((hex: string) => {
+            const c = new Color(hex);
+            return [c.r, c.g, c.b];
+          });
+        }
+        program.uniforms.uColorStops.value = parsedArray;
         renderer.render({ scene: mesh });
       }
     };
-    animateId = requestAnimationFrame(update);
+
+    /**
+     * The loop runs only while the curtain is on screen.
+     *
+     * The footer mounts this once and never lets go, so after one visit to the
+     * foot of the page the shader went on drawing a full-width frame every
+     * frame for the rest of the session — through every scroll back up the
+     * page, on the same GPU the scroll itself needs.
+     */
+    const start = () => {
+      if (!animateId) animateId = requestAnimationFrame(update);
+    };
+    const stop = () => {
+      cancelAnimationFrame(animateId);
+      animateId = 0;
+    };
+
+    const visibility =
+      typeof IntersectionObserver === "undefined"
+        ? null
+        : new IntersectionObserver(([entry]) => {
+            if (entry?.isIntersecting) start();
+            else stop();
+          });
+
+    if (visibility) visibility.observe(ctn);
+    else start();
 
     resize();
 
     return () => {
-      cancelAnimationFrame(animateId);
+      visibility?.disconnect();
+      stop();
       window.removeEventListener("resize", resize);
       if (ctn && gl.canvas.parentNode === ctn) {
         ctn.removeChild(gl.canvas);

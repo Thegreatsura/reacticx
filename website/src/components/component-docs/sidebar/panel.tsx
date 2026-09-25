@@ -77,6 +77,17 @@ const PANEL_SURFACE_STYLE: CSSProperties = {
 const TOP_BLUR = { height: "3rem", strength: 1.5, divCount: 6 } as const;
 
 /**
+ * Layers in the ramp on a phone.
+ *
+ * Every layer is full-bleed, so each is a `backdrop-filter` over the whole
+ * panel, and they sit above the nav: scrolling the list — or the preview video
+ * playing behind the panel — re-blurs all six on every frame. That is what the
+ * sidebar was lagging on. Two still read as a ramp rather than a band at phone
+ * size, and the fine one never paints there at all (see `.blur-ramp-*`).
+ */
+const TOP_BLUR_MOBILE_DIV_COUNT = 2;
+
+/**
  * The flat blur across the body of the panel, under the tint.
  *
  * `md` is 12px against the ramp's 24px peak — enough that the page reads as
@@ -140,8 +151,8 @@ const smoothstep = (progress: number) =>
  * The progression itself is the package's: same bezier curve, same exponential
  * ramp, same overlapping bands, so `TOP_BLUR` tunes it as the package would.
  */
-function TopBlurRamp() {
-  const { height, strength, divCount } = TOP_BLUR;
+function TopBlurRamp({ divCount }: { divCount: number }) {
+  const { height, strength } = TOP_BLUR;
   const feather = `calc(${height} / ${divCount})`;
 
   return (
@@ -349,7 +360,16 @@ export function FloatingSidebarPanel() {
             </Sidebar001>
           </div>
 
-          {settled ? <TopBlurRamp /> : null}
+          {settled ? (
+            <>
+              <div className="blur-ramp-fine">
+                <TopBlurRamp divCount={TOP_BLUR.divCount} />
+              </div>
+              <div className="blur-ramp-coarse">
+                <TopBlurRamp divCount={TOP_BLUR_MOBILE_DIV_COUNT} />
+              </div>
+            </>
+          ) : null}
         </motion.aside>
       ) : null}
     </AnimatePresence>,

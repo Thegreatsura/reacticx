@@ -54,6 +54,7 @@ export default function RootLayout() {
         <Stack.Screen name="components/circular-list/index" />
         <Stack.Screen name="components/circular-loader/index" />
         <Stack.Screen name="components/circular-progress/index" />
+        <Stack.Screen name="components/circular-status-bar-iphone-duo/index" />
         <Stack.Screen name="components/circular-text/index" />
         <Stack.Screen name="components/context-menu/index" />
         <Stack.Screen name="components/coupon/index" />

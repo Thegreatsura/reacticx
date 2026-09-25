@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "#/lib/utils";
-import { CHAR, DURATION, EASE_NUMERIC } from "./motion";
+import { CHAR, DURATION } from "./motion";
 
 /* -------------------------------------------------------------------------- */
 /*                                   in view                                  */
@@ -52,21 +52,6 @@ export function useInView<T extends HTMLElement>({
   return [ref, inView] as const;
 }
 
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = React.useState(false);
-
-  React.useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-
-    const onChange = () => setReduced(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-
-  return reduced;
-}
-
 /* -------------------------------------------------------------------------- */
 /*                              character reveal                              */
 /* -------------------------------------------------------------------------- */
@@ -88,6 +73,12 @@ type CharsProps = {
  * Per-character entrance built from numeric-text's transform recipe: glyphs
  * rise 0.35em, scale from 0.6, unrotate 2deg and unblur, staggered across a
  * fixed fraction of the duration so long lines never feel slow.
+ *
+ * The motion itself lives in `globals.css` as keyframes (see the note there on
+ * why it is not a transition). This only decides when the line starts, and
+ * hands each glyph its place in the stagger. That also retires the old
+ * `will-change` bookkeeping and the re-render that withdrew it: a running
+ * animation promotes its own layers and releases them when it ends.
  */
 export function Chars({
   children,
@@ -97,7 +88,6 @@ export function Chars({
   immediate = false,
 }: CharsProps) {
   const [ref, inView] = useInView<HTMLSpanElement>();
-  const reduced = usePrefersReducedMotion();
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => setMounted(true), []);
@@ -106,35 +96,17 @@ export function Chars({
   const animatingCount = children.replace(/\s/g, "").length;
   const step = (DURATION * CHAR.stagger * spread) / Math.max(animatingCount, 1);
 
-  const visible = reduced || (immediate ? mounted : inView);
-
-  /**
-   * Whether the entrance is over.
-   *
-   * `will-change` below promotes every glyph to its own compositor layer, and
-   * a promise about `filter` keeps a blur surface allocated alongside it. It
-   * used to be unconditional, which made it a standing cost rather than a
-   * hint: the landing page painted 127 glyph layers before a single one had
-   * moved — most of them in sections still several screens away — and none of
-   * them was ever released. So the promise is now made only for the half
-   * second a line is actually in motion. Off-screen lines make no promise at
-   * all, and a line that has landed withdraws its own.
-   */
-  const [settled, setSettled] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!visible || reduced) return;
-
-    setSettled(false);
-    const last = delay + Math.max(animatingCount - 1, 0) * step + DURATION;
-    const timer = window.setTimeout(() => setSettled(true), last * 1000 + 60);
-    return () => window.clearTimeout(timer);
-  }, [visible, reduced, delay, animatingCount, step]);
+  const visible = immediate ? mounted : inView;
 
   let index = 0;
 
   return (
-    <span aria-label={children} className={cn("inline", className)} ref={ref}>
+    <span
+      aria-label={children}
+      className={cn("inline", className)}
+      data-rx-chars={visible ? "play" : "idle"}
+      ref={ref}
+    >
       {words.map((word, wordIndex) => (
         <span
           aria-hidden
@@ -147,24 +119,9 @@ export function Chars({
 
             return (
               <span
-                className="inline-block"
+                className="rx-char inline-block"
                 key={`${char}-${charIndex}`}
-                style={{
-                  opacity: visible ? 1 : 0,
-                  transform: visible
-                    ? "none"
-                    : `translateY(${CHAR.y}em) scale(${CHAR.scale}) rotateZ(${CHAR.rotate}deg)`,
-                  filter: visible ? "blur(0px)" : `blur(${CHAR.blur}em)`,
-                  transition: reduced
-                    ? "none"
-                    : `opacity ${DURATION}s ${EASE_NUMERIC} ${charDelay}s,
-                       transform ${DURATION}s ${EASE_NUMERIC} ${charDelay}s,
-                       filter ${DURATION}s ${EASE_NUMERIC} ${charDelay}s`,
-                  willChange:
-                    visible && !settled && !reduced
-                      ? "transform, filter, opacity"
-                      : undefined,
-                }}
+                style={{ animationDelay: `${charDelay}s` }}
               >
                 {char}
               </span>
@@ -207,12 +164,11 @@ export function Reveal({
   ...props
 }: RevealProps) {
   const [ref, inView] = useInView<HTMLElement>({ once, margin, amount });
-  const reduced = usePrefersReducedMotion();
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => setMounted(true), []);
 
-  const visible = reduced || (immediate ? mounted : inView);
+  const visible = immediate ? mounted : inView;
 
   // `as` widens the element type, so the shared ref is narrowed at the call.
   const Element = Tag as React.ElementType;
@@ -220,18 +176,16 @@ export function Reveal({
   return (
     <Element
       className={className}
+      data-rx-reveal={visible ? "play" : "idle"}
       ref={ref}
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? "none" : `translateY(${distance}px)`,
-        filter: visible ? "blur(0px)" : `blur(${blur}px)`,
-        transition: reduced
-          ? "none"
-          : `opacity ${DURATION}s ${EASE_NUMERIC} ${delay}s,
-             transform ${DURATION}s ${EASE_NUMERIC} ${delay}s,
-             filter ${DURATION}s ${EASE_NUMERIC} ${delay}s`,
-        ...style,
-      }}
+      style={
+        {
+          "--rx-reveal-y": `${distance}px`,
+          "--rx-reveal-blur": `${blur}px`,
+          animationDelay: `${delay}s`,
+          ...style,
+        } as React.CSSProperties
+      }
       {...props}
     >
       {children}

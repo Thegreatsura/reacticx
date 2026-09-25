@@ -309,6 +309,14 @@ export const COMPONENT_ROUTES: ComponentRoute[] = [
     hasScreen: true,
   },
   {
+    name: "components/circular-status-bar-iphone-duo",
+    component: "circular-status-bar-iphone-duo",
+    category: "micro-interactions",
+    title: "Circular Status Bar Iphone Duo",
+    path: "app/components/circular-status-bar-iphone-duo",
+    hasScreen: true,
+  },
+  {
     name: "components/circular-text",
     component: "circular-text",
     category: "organisms",

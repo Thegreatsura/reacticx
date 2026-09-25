@@ -14,6 +14,9 @@ export default function DustTextScreen() {
           shape="square"
           fontSource={require("~/assets/fonts/elingston.otf")}
           colors={["#FFFFFF", "#FFD166", "#efeae8", "#efebec"]}
+          density={18}
+          stagger={0}
+          touchForce={0.3}
           style={styles.hero}
         >
           okkkk

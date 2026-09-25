@@ -1282,3 +1282,236 @@ pre:not([data-plain]) span {
     display: block;
   }
 }
+
+/*
+ * The panel's top blur ramp, stood down on a phone.
+ *
+ * Same question as `.progressive-blur-*` above, asked for the floating docs
+ * sidebar. Its ramp layers are full-bleed on purpose (see `TopBlurRamp`), so
+ * each one is a `backdrop-filter` over the whole panel, and they sit above the
+ * nav — every scroll of the list, and every frame of the preview video playing
+ * behind the panel, re-blurs all of them. `display: contents` rather than
+ * `block`, so the layers still hang directly off the panel with no box in
+ * between.
+ */
+.blur-ramp-fine {
+  display: contents;
+}
+
+.blur-ramp-coarse {
+  display: none;
+}
+
+@media (pointer: coarse), (max-width: 767px) {
+  .blur-ramp-fine {
+    display: none;
+  }
+
+  .blur-ramp-coarse {
+    display: contents;
+  }
+}
+
+/*
+ * Entrance motion for `Chars`, `Reveal` and `Phrase` (landing/primitives.tsx,
+ * landing/swap-text.tsx).
+ *
+ * These used to be CSS transitions eased with `EASE_NUMERIC`, a `linear()`
+ * spring. The curve is right; the vehicle was not. Safari cannot hand an
+ * animation eased with a multi-point `linear()` to Core Animation, so on an
+ * iPhone every glyph's opacity, transform and blur ran on the main thread —
+ * exactly when hydration, video setup and the catalogue's observers were
+ * fighting for it — and the headline entrances stuttered on the phone while
+ * staying smooth on a desktop that composited them.
+ *
+ * So the spring is baked into the keyframes instead: one stop per point of
+ * `EASE_NUMERIC`, eased `linear` between them. A `linear()` easing *is* that
+ * piecewise-linear interpolation, so the motion is identical to the frame, but
+ * every browser can now run it on the compositor. The geometry is `CHAR` from
+ * landing/motion.ts; `Reveal` passes its own distance and blur in as custom
+ * properties. Keep all three in step with that file.
+ *
+ * They are also animations rather than transitions, which removes a race. A
+ * transition needs the start state to have been through style first, and an
+ * entrance that mounts and flips in the same frame simply appeared. An
+ * animation carries its own start frame, and `backwards` holds it through the
+ * stagger delay.
+ *
+ * Everything is inside `no-preference`: with reduced motion the idle states
+ * never hide anything and nothing plays, so the copy is readable from the
+ * first paint rather than after hydration.
+ */
+@keyframes rx-rise-in {
+  0% { opacity: 0; transform: translateY(0.35em) scale(0.6) rotate(2deg); }
+  5.8824% { opacity: 0.1052; transform: translateY(0.3132em) scale(0.6421) rotate(1.7896deg); }
+  11.7647% { opacity: 0.3155; transform: translateY(0.2396em) scale(0.7262) rotate(1.369deg); }
+  17.6471% { opacity: 0.532; transform: translateY(0.1638em) scale(0.8128) rotate(0.936deg); }
+  23.5294% { opacity: 0.7112; transform: translateY(0.1011em) scale(0.8845) rotate(0.5776deg); }
+  29.4118% { opacity: 0.8414; transform: translateY(0.0555em) scale(0.9366) rotate(0.3172deg); }
+  35.2941% { opacity: 0.9265; transform: translateY(0.0257em) scale(0.9706) rotate(0.147deg); }
+  41.1765% { opacity: 0.9765; transform: translateY(0.0082em) scale(0.9906) rotate(0.047deg); }
+  47.0588% { opacity: 1; transform: translateY(-0.0008em) scale(1.0009) rotate(-0.0046deg); }
+  52.9412% { opacity: 1; transform: translateY(-0.0045em) scale(1.0052) rotate(-0.026deg); }
+  58.8235% { opacity: 1; transform: translateY(-0.0053em) scale(1.006) rotate(-0.0302deg); }
+  64.7059% { opacity: 1; transform: translateY(-0.0047em) scale(1.0053) rotate(-0.0266deg); }
+  70.5882% { opacity: 1; transform: translateY(-0.0035em) scale(1.004) rotate(-0.02deg); }
+  76.4706% { opacity: 1; transform: translateY(-0.0024em) scale(1.0027) rotate(-0.0136deg); }
+  82.3529% { opacity: 1; transform: translateY(-0.0014em) scale(1.0016) rotate(-0.0082deg); }
+  88.2353% { opacity: 1; transform: translateY(-0.0008em) scale(1.0009) rotate(-0.0044deg); }
+  94.1176% { opacity: 1; transform: translateY(-0.0003em) scale(1.0004) rotate(-0.002deg); }
+  100% { opacity: 1; transform: translateY(0em) scale(1) rotate(0deg); }
+}
+
+@keyframes rx-blur-in {
+  0% { filter: blur(0.1em); }
+  5.8824% { filter: blur(0.0895em); }
+  11.7647% { filter: blur(0.0685em); }
+  17.6471% { filter: blur(0.0468em); }
+  23.5294% { filter: blur(0.0289em); }
+  29.4118% { filter: blur(0.0159em); }
+  35.2941% { filter: blur(0.0074em); }
+  41.1765% { filter: blur(0.0023em); }
+  47.0588% { filter: blur(0em); }
+  52.9412% { filter: blur(0em); }
+  58.8235% { filter: blur(0em); }
+  64.7059% { filter: blur(0em); }
+  70.5882% { filter: blur(0em); }
+  76.4706% { filter: blur(0em); }
+  82.3529% { filter: blur(0em); }
+  88.2353% { filter: blur(0em); }
+  94.1176% { filter: blur(0em); }
+  100% { filter: blur(0em); }
+}
+
+@keyframes rx-rise-out {
+  0% { opacity: 1; transform: translateY(0em) scale(1) rotate(0deg); }
+  5.8824% { opacity: 0.8948; transform: translateY(-0.0368em) scale(0.9579) rotate(0.2104deg); }
+  11.7647% { opacity: 0.6845; transform: translateY(-0.1104em) scale(0.8738) rotate(0.631deg); }
+  17.6471% { opacity: 0.468; transform: translateY(-0.1862em) scale(0.7872) rotate(1.064deg); }
+  23.5294% { opacity: 0.2888; transform: translateY(-0.2489em) scale(0.7155) rotate(1.4224deg); }
+  29.4118% { opacity: 0.1586; transform: translateY(-0.2945em) scale(0.6634) rotate(1.6828deg); }
+  35.2941% { opacity: 0.0735; transform: translateY(-0.3243em) scale(0.6294) rotate(1.853deg); }
+  41.1765% { opacity: 0.0235; transform: translateY(-0.3418em) scale(0.6094) rotate(1.953deg); }
+  47.0588% { opacity: 0; transform: translateY(-0.3508em) scale(0.5991) rotate(2.0046deg); }
+  52.9412% { opacity: 0; transform: translateY(-0.3545em) scale(0.5948) rotate(2.026deg); }
+  58.8235% { opacity: 0; transform: translateY(-0.3553em) scale(0.594) rotate(2.0302deg); }
+  64.7059% { opacity: 0; transform: translateY(-0.3547em) scale(0.5947) rotate(2.0266deg); }
+  70.5882% { opacity: 0; transform: translateY(-0.3535em) scale(0.596) rotate(2.02deg); }
+  76.4706% { opacity: 0; transform: translateY(-0.3524em) scale(0.5973) rotate(2.0136deg); }
+  82.3529% { opacity: 0; transform: translateY(-0.3514em) scale(0.5984) rotate(2.0082deg); }
+  88.2353% { opacity: 0; transform: translateY(-0.3508em) scale(0.5991) rotate(2.0044deg); }
+  94.1176% { opacity: 0; transform: translateY(-0.3503em) scale(0.5996) rotate(2.002deg); }
+  100% { opacity: 0; transform: translateY(-0.35em) scale(0.6) rotate(2deg); }
+}
+
+@keyframes rx-blur-out {
+  0% { filter: blur(0em); }
+  5.8824% { filter: blur(0.0105em); }
+  11.7647% { filter: blur(0.0316em); }
+  17.6471% { filter: blur(0.0532em); }
+  23.5294% { filter: blur(0.0711em); }
+  29.4118% { filter: blur(0.0841em); }
+  35.2941% { filter: blur(0.0927em); }
+  41.1765% { filter: blur(0.0977em); }
+  47.0588% { filter: blur(0.1002em); }
+  52.9412% { filter: blur(0.1013em); }
+  58.8235% { filter: blur(0.1015em); }
+  64.7059% { filter: blur(0.1013em); }
+  70.5882% { filter: blur(0.101em); }
+  76.4706% { filter: blur(0.1007em); }
+  82.3529% { filter: blur(0.1004em); }
+  88.2353% { filter: blur(0.1002em); }
+  94.1176% { filter: blur(0.1001em); }
+  100% { filter: blur(0.1em); }
+}
+
+@keyframes rx-reveal-in {
+  0% { opacity: 0; transform: translateY(calc(var(--rx-reveal-y) * 1)); filter: blur(calc(var(--rx-reveal-blur) * 1)); }
+  5.8824% { opacity: 0.1052; transform: translateY(calc(var(--rx-reveal-y) * 0.8948)); filter: blur(calc(var(--rx-reveal-blur) * 0.8948)); }
+  11.7647% { opacity: 0.3155; transform: translateY(calc(var(--rx-reveal-y) * 0.6845)); filter: blur(calc(var(--rx-reveal-blur) * 0.6845)); }
+  17.6471% { opacity: 0.532; transform: translateY(calc(var(--rx-reveal-y) * 0.468)); filter: blur(calc(var(--rx-reveal-blur) * 0.468)); }
+  23.5294% { opacity: 0.7112; transform: translateY(calc(var(--rx-reveal-y) * 0.2888)); filter: blur(calc(var(--rx-reveal-blur) * 0.2888)); }
+  29.4118% { opacity: 0.8414; transform: translateY(calc(var(--rx-reveal-y) * 0.1586)); filter: blur(calc(var(--rx-reveal-blur) * 0.1586)); }
+  35.2941% { opacity: 0.9265; transform: translateY(calc(var(--rx-reveal-y) * 0.0735)); filter: blur(calc(var(--rx-reveal-blur) * 0.0735)); }
+  41.1765% { opacity: 0.9765; transform: translateY(calc(var(--rx-reveal-y) * 0.0235)); filter: blur(calc(var(--rx-reveal-blur) * 0.0235)); }
+  47.0588% { opacity: 1; transform: translateY(calc(var(--rx-reveal-y) * -0.0023)); filter: blur(calc(var(--rx-reveal-blur) * 0)); }
+  52.9412% { opacity: 1; transform: translateY(calc(var(--rx-reveal-y) * -0.013)); filter: blur(calc(var(--rx-reveal-blur) * 0)); }
+  58.8235% { opacity: 1; transform: translateY(calc(var(--rx-reveal-y) * -0.0151)); filter: blur(calc(var(--rx-reveal-blur) * 0)); }
+  64.7059% { opacity: 1; transform: translateY(calc(var(--rx-reveal-y) * -0.0133)); filter: blur(calc(var(--rx-reveal-blur) * 0)); }
+  70.5882% { opacity: 1; transform: translateY(calc(var(--rx-reveal-y) * -0.01)); filter: blur(calc(var(--rx-reveal-blur) * 0)); }
+  76.4706% { opacity: 1; transform: translateY(calc(var(--rx-reveal-y) * -0.0068)); filter: blur(calc(var(--rx-reveal-blur) * 0)); }
+  82.3529% { opacity: 1; transform: translateY(calc(var(--rx-reveal-y) * -0.0041)); filter: blur(calc(var(--rx-reveal-blur) * 0)); }
+  88.2353% { opacity: 1; transform: translateY(calc(var(--rx-reveal-y) * -0.0022)); filter: blur(calc(var(--rx-reveal-blur) * 0)); }
+  94.1176% { opacity: 1; transform: translateY(calc(var(--rx-reveal-y) * -0.001)); filter: blur(calc(var(--rx-reveal-blur) * 0)); }
+  100% { opacity: 1; transform: translateY(calc(var(--rx-reveal-y) * 0)); filter: blur(calc(var(--rx-reveal-blur) * 0)); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Chars — one span per glyph, rising and unblurring together. */
+  [data-rx-chars="idle"] .rx-char {
+    opacity: 0;
+    transform: translateY(0.35em) scale(0.6) rotate(2deg);
+    filter: blur(0.1em);
+  }
+
+  [data-rx-chars="play"] .rx-char {
+    animation-name: rx-rise-in, rx-blur-in;
+    animation-duration: 0.55s;
+    animation-timing-function: linear;
+    animation-fill-mode: backwards;
+  }
+
+  /* Reveal — one soft rise for a whole block. */
+  [data-rx-reveal="idle"] {
+    opacity: 0;
+    transform: translateY(var(--rx-reveal-y));
+    filter: blur(var(--rx-reveal-blur));
+  }
+
+  [data-rx-reveal="play"] {
+    animation-name: rx-reveal-in;
+    animation-duration: 0.55s;
+    animation-timing-function: linear;
+    animation-fill-mode: backwards;
+  }
+
+  /* Phrase — glyphs carry the stagger; the blur is one filter on the
+     wrapper, spread over the phrase's whole span (set inline). */
+  [data-rx-phrase="in-idle"] {
+    filter: blur(0.1em);
+  }
+
+  [data-rx-phrase="in-idle"] > .rx-glyph {
+    opacity: 0;
+    transform: translateY(0.35em) scale(0.6) rotate(2deg);
+  }
+
+  [data-rx-phrase="in"] {
+    animation-name: rx-blur-in;
+    animation-timing-function: linear;
+    animation-fill-mode: backwards;
+  }
+
+  [data-rx-phrase="in"] > .rx-glyph {
+    animation: rx-rise-in 0.55s linear backwards;
+  }
+
+  /* Leaving copy is unmounted once it has gone, so it holds its end frame. */
+  [data-rx-phrase="out"] {
+    animation-name: rx-blur-out;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+  }
+
+  [data-rx-phrase="out"] > .rx-glyph {
+    animation: rx-rise-out 0.55s linear forwards;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Nothing animates it away, so the leaving copy would sit on top of the
+     arriving one until it unmounts. */
+  [data-rx-phrase^="out"] {
+    visibility: hidden;
+  }
+}

@@ -29,19 +29,19 @@ export default function App(): React.ReactElement {
           fontSize={35}
           height={500}
           animationConfig={{
-            characterDelay: 20,
+            characterDelay: 30,
           }}
           enterTo={{
             translateY: 1,
             opacity: 0,
-            blur: 10,
-            scale: 0.1,
+            blur: 15,
+            scale: 0.5,
           }}
           exitTo={{
-            translateY: -1,
+            translateY: -0.9,
             opacity: 0,
-            blur: 10,
-            scale: 0,
+            blur: 15,
+            scale: 0.5,
           }}
           color="#ffffff"
           letterSpacing={1}

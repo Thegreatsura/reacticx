@@ -17,7 +17,7 @@ import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
 import { c, formatDuration, log } from "../../../cloudflare/sync/lib/log";
-import { config, type CategoryType } from "./config";
+import { config, contentDirFor, type CategoryType } from "./config";
 import { hoverVideoFor } from "./lib/registry";
 import {
   dependencyLabels,
@@ -80,6 +80,25 @@ function titleFromSlug(slug: string) {
     .split(/[-_]/)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+}
+
+/**
+ * Whether a component already has a page in any docs section.
+ *
+ * Checking `content/components` alone missed every primitive — their pages
+ * live in `content/primitives` — so each scaffold run wrote a second page for
+ * all of them, and the next sync listed each primitive twice in the sidebar.
+ */
+function documentedIn(name: string) {
+  return config.sections.some((section) =>
+    existsSync(join(contentDirFor(section), `${name}.mdx`)),
+  );
+}
+
+/** The folder a new page belongs in: its category's own section, if it has one. */
+function contentDirForCategory(category: CategoryType) {
+  const section = config.sections.find((entry) => entry.id === category);
+  return section ? contentDirFor(section) : config.contentDir;
 }
 
 /** Every file under a directory, recursively. */
@@ -318,7 +337,7 @@ async function main() {
   }
 
   const pending = candidates.filter(
-    (name) => flags.force || !existsSync(join(config.contentDir, `${name}.mdx`)),
+    (name) => flags.force || !documentedIn(name),
   );
 
   log.step(
@@ -377,7 +396,10 @@ async function main() {
       hasExample: existsSync(join(exampleDir, "index.tsx")),
     });
 
-    const target = join(config.contentDir, `${name}.mdx`);
+    const target = join(
+      contentDirForCategory(editorial?.category ?? "components"),
+      `${name}.mdx`,
+    );
     if (!flags.dry) await writeFile(target, page);
 
     log.success(

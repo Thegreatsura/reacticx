@@ -104,7 +104,6 @@ export function CyclingText({
         <Phrase
           key={`in-${index}`}
           mode="in"
-          reduced={reduced}
           spread={spread}
           text={phrases[index]}
         />

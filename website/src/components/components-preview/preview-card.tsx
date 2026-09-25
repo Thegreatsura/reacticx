@@ -35,6 +35,9 @@ const PLAY_MARGIN = "80px";
 
 const IMAGE_FILE = /\.(png|jpe?g|webp|avif|gif)(\?|$)/i;
 
+const mediaClass =
+  "absolute inset-0 h-full w-full object-contain transition-opacity duration-500 ease-out motion-reduce:transition-none";
+
 /** Recently released, by the page's own `lastModified`. */
 const NEW_WINDOW_DAYS = 45;
 
@@ -42,6 +45,47 @@ function isRecent(lastModified: string) {
   const at = Date.parse(lastModified);
   if (Number.isNaN(at)) return false;
   return Date.now() - at < NEW_WINDOW_DAYS * 86_400_000;
+}
+
+type EntryListener = (entry: IntersectionObserverEntry) => void;
+
+/**
+ * One observer per margin for the whole grid, rather than three per card.
+ *
+ * The components catalogue is 112 cards, which made 336 observers, each doing
+ * its own intersection pass on every scroll frame and each firing its own
+ * callback. Batched, it is three passes and one callback per margin however
+ * many cards cross it. Nothing about the answers changes: a target still gets
+ * its initial entry when it is observed and one per crossing after that.
+ */
+const sharedObservers = new Map<
+  string,
+  { observer: IntersectionObserver; listeners: Map<Element, EntryListener> }
+>();
+
+function observe(element: Element, rootMargin: string, listener: EntryListener) {
+  let shared = sharedObservers.get(rootMargin);
+
+  if (!shared) {
+    const listeners = new Map<Element, EntryListener>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) listeners.get(entry.target)?.(entry);
+      },
+      { rootMargin, threshold: 0 },
+    );
+    shared = { observer, listeners };
+    sharedObservers.set(rootMargin, shared);
+  }
+
+  const { observer, listeners } = shared;
+  listeners.set(element, listener);
+  observer.observe(element);
+
+  return () => {
+    listeners.delete(element);
+    observer.unobserve(element);
+  };
 }
 
 /**
@@ -73,33 +117,30 @@ function useVisibility(
     const element = ref.current;
     if (!element) return;
 
-    const loader = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) setShouldLoad(true);
+    const unobserveLoader = observe(
+      element,
+      mobile ? LOAD_MARGIN_MOBILE : LOAD_MARGIN,
+      (entry) => {
+        if (entry.isIntersecting) setShouldLoad(true);
       },
-      { rootMargin: mobile ? LOAD_MARGIN_MOBILE : LOAD_MARGIN },
     );
 
-    const keeper = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry?.isIntersecting) setShouldLoad(false);
+    const unobserveKeeper = observe(
+      element,
+      mobile ? KEEP_MARGIN_MOBILE : KEEP_MARGIN,
+      (entry) => {
+        if (!entry.isIntersecting) setShouldLoad(false);
       },
-      { rootMargin: mobile ? KEEP_MARGIN_MOBILE : KEEP_MARGIN },
     );
 
-    const player = new IntersectionObserver(
-      ([entry]) => setIsVisible(Boolean(entry?.isIntersecting)),
-      { rootMargin: PLAY_MARGIN, threshold: 0 },
+    const unobservePlayer = observe(element, PLAY_MARGIN, (entry) =>
+      setIsVisible(entry.isIntersecting),
     );
-
-    loader.observe(element);
-    keeper.observe(element);
-    player.observe(element);
 
     return () => {
-      loader.disconnect();
-      keeper.disconnect();
-      player.disconnect();
+      unobserveLoader();
+      unobserveKeeper();
+      unobservePlayer();
     };
   }, [ref, mobile]);
 
@@ -234,15 +275,25 @@ export const PreviewCard = memo(function PreviewCard({
         // nothing is cropped — the component is shown whole.
         style={{ aspectRatio: aspect }}
       >
-        {!ready && (
-          <div aria-hidden className="absolute inset-0 animate-pulse bg-white/[0.04]" />
-        )}
+        {/* The clip fades in over the placeholder instead of cutting over it.
+            A video paints nothing until its first frame decodes and then all
+            of it at once, so each card used to go from a pulsing block to a
+            moving picture in a single frame — a hard pop per card, several at
+            a time as a row scrolled in. Both are opacity, so the crossfade is
+            composited. */}
+        <div
+          aria-hidden
+          className={cn(
+            "absolute inset-0 bg-white/[0.04] transition-opacity duration-500 ease-out motion-reduce:transition-none",
+            ready ? "opacity-0" : "animate-pulse",
+          )}
+        />
 
         {shouldLoad && src ? (
           isImage ? (
             <img
               alt=""
-              className="absolute inset-0 h-full w-full object-contain"
+              className={cn(mediaClass, ready ? "opacity-100" : "opacity-0")}
               decoding="async"
               loading="lazy"
               onLoad={() => setReady(true)}
@@ -251,7 +302,7 @@ export const PreviewCard = memo(function PreviewCard({
           ) : (
             <video
               aria-hidden
-              className="absolute inset-0 h-full w-full object-contain"
+              className={cn(mediaClass, ready ? "opacity-100" : "opacity-0")}
               loop
               muted
               onLoadedData={() => setReady(true)}

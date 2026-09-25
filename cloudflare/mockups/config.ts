@@ -21,12 +21,14 @@ export const categories = [
   {
     id: "bottom-sheet",
     title: "Bottom Sheet",
-    description: "Sheets that rise over a dimmed screen — forms, offers, payment and auth.",
+    description:
+      "Sheets that rise over a dimmed screen — forms, offers, payment and auth.",
   },
   {
     id: "empty-state",
     title: "Empty State",
-    description: "What a list, inbox or gallery shows before it has anything in it.",
+    description:
+      "What a list, inbox or gallery shows before it has anything in it.",
   },
   {
     id: "settings",
@@ -40,11 +42,11 @@ export const categories = [
   },
 ] as const;
 
-export type CategoryId = (typeof categories)[number]["id"];
+export type TCategoryId = (typeof categories)[number]["id"];
 
 export const categoryIds = categories.map((category) => category.id);
 
-export const isCategoryId = (value: string): value is CategoryId =>
+export const isCategoryId = (value: string): value is TCategoryId =>
   (categoryIds as readonly string[]).includes(value);
 
 /**
@@ -59,7 +61,7 @@ export const isCategoryId = (value: string): value is CategoryId =>
  * A mockup matching none of the three is a hard error rather than a guess — an
  * uncategorised block is invisible in every listing.
  */
-export const categoryOf = {} satisfies Record<string, CategoryId>;
+export const categoryOf = {} satisfies Record<string, TCategoryId>;
 
 /**
  * Mockups whose file name never matched their block's directory.
@@ -115,7 +117,6 @@ export const config = {
     join(CLOUDFLARE_DIR, "generated", "v2-mockups.ts"),
     join(ROOT_DIR, "website", "src", "lib", "v2-mockups.generated.ts"),
   ],
-
   /** File types accepted in the source folder, and how R2 serves them. */
   mediaTypes: {
     ".png": "image/png",
@@ -149,7 +150,10 @@ export const config = {
  * `R2_MOCKUPS_PUBLIC_ORIGIN` for when this moves to a custom domain.
  */
 export function publicOrigin() {
-  const override = process.env.R2_MOCKUPS_PUBLIC_ORIGIN?.trim().replace(/\/+$/, "");
+  const override = process.env.R2_MOCKUPS_PUBLIC_ORIGIN?.trim().replace(
+    /\/+$/,
+    "",
+  );
   return override || "https://pub-011895838bd549b3b6311d0df5257626.r2.dev";
 }
 

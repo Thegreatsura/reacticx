@@ -1,6 +1,6 @@
 {
   "bucket": "reacticx-landing-assets",
-  "updatedAt": "2026-08-27T10:19:56.280Z",
+  "updatedAt": "2026-09-25T14:39:49.923Z",
   "entries": {
     "3d-carousel-landing-asset.mp4": {
       "file": "cloudflare/landing-assets/3d-carousel-landing-asset.mp4",
@@ -218,6 +218,13 @@
       "size": 20299,
       "contentType": "video/mp4",
       "uploadedAt": "2026-08-27T10:19:03.387Z"
+    },
+    "circular-status-bar-iphone-duo-landing-asset.mp4": {
+      "file": "cloudflare/landing-assets/circular-status-bar-iphone-duo-landing-asset.mp4",
+      "hash": "d7906cc317c21453b26b3acf8eac3051ba973757795ce3e06e5e43400fa7b91c",
+      "size": 102084,
+      "contentType": "video/mp4",
+      "uploadedAt": "2026-09-25T14:38:34.464Z"
     },
     "circular-text-landing-asset.mp4": {
       "file": "cloudflare/landing-assets/circular-text-landing-asset.mp4",

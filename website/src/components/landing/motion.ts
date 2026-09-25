@@ -9,7 +9,13 @@
  * native surface rather than a pile of animated sections.
  */
 
-/** `linear()` approximation of the numeric-text spring (overshoots ~1.5%). */
+/**
+ * `linear()` approximation of the numeric-text spring (overshoots ~1.5%).
+ *
+ * The entrance keyframes in `globals.css` (`rx-rise-in` and friends) bake this
+ * curve and `CHAR` below into their stops so they can run on the compositor.
+ * Change either here and regenerate those to match.
+ */
 export const EASE_NUMERIC =
   "linear(0,.1052,.3155,.532,.7112,.8414,.9265,.9765,1.0023,1.013,1.0151,1.0133,1.01,1.0068,1.0041,1.0022,1.001,1)";
 

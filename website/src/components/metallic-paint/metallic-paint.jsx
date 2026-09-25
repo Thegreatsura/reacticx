@@ -142,7 +142,54 @@ void main(){
   oC=vec4(col*vs,vs);
 }`;
 
-function processImage(img) {
+/**
+ * Longest the depth solve may hold the main thread before handing it back.
+ *
+ * The solve is 200 relaxation sweeps over a 512px raster — about fifty million
+ * cell updates. Run in one go that is a few hundred milliseconds of frozen page
+ * on a phone, and it was landing a beat after mount: in the middle of whatever
+ * entrance the page was playing. In slices, the sweeps and their order are
+ * unchanged, so the depth map is identical; it just stops blocking anything.
+ */
+const SLICE_MS = 8;
+
+function yieldToMain() {
+  if (globalThis.scheduler?.yield) return globalThis.scheduler.yield();
+  // A message rather than `setTimeout(0)`: nested timeouts are clamped to 4ms,
+  // which a solve yielding a hundred times would spend mostly waiting.
+  return new Promise(resolve => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => resolve();
+    channel.port2.postMessage(null);
+  });
+}
+
+/**
+ * Depth maps by source, for the life of the page.
+ *
+ * Every page renders its own navbar, so each client-side navigation remounted
+ * the logo and solved the same glyph from scratch. The promise is cached rather
+ * than the result, so two mounts racing for one source share a single solve.
+ */
+const depthMaps = new Map();
+
+function loadDepthMap(src) {
+  let pending = depthMaps.get(src);
+  if (!pending) {
+    pending = new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    }).then(processImage);
+    depthMaps.set(src, pending);
+    pending.catch(() => depthMaps.delete(src));
+  }
+  return pending;
+}
+
+async function processImage(img) {
   const MAX_SIZE = 1000;
   const MIN_SIZE = 500;
   let width = img.naturalWidth || img.width;
@@ -213,7 +260,12 @@ function processImage(img) {
   const C = 0.01;
   const omega = 1.85;
 
+  let sliceStart = performance.now();
   for (let iter = 0; iter < ITERATIONS; iter++) {
+    if (performance.now() - sliceStart > SLICE_MS) {
+      await yieldToMain();
+      sliceStart = performance.now();
+    }
     for (let y = 1; y < height - 1; y++) {
       for (let x = 1; x < width - 1; x++) {
         const idx = y * width + x;
@@ -252,6 +304,20 @@ function hexToRgb(hex) {
     : [1, 1, 1];
 }
 
+/**
+ * Backing-store pixels per device pixel.
+ *
+ * The canvas used to be a fixed `1000 * devicePixelRatio` square whatever it
+ * was displayed at: 3000×3000 on a phone, nine million runs of this shader per
+ * frame, forever, for a 24px glyph — and on the landing pages' mobile bar,
+ * where the glyph is `display: none`, for nothing anyone could see. The shader
+ * only reads normalised coordinates, so the picture does not depend on the
+ * resolution; sizing the store to the box it is shown in (with 2× headroom,
+ * which is still a supersample) draws the same glyph for a sliver of the work.
+ */
+const SUPERSAMPLE = 2;
+const MAX_SIDE = 2048;
+
 export default function MetallicPaint({
   imageSrc,
   seed = 42,
@@ -283,6 +349,7 @@ export default function MetallicPaint({
   const animTimeRef = useRef(0);
   const lastTimeRef = useRef(0);
   const rafRef = useRef(null);
+  const resizeRef = useRef(null);
   const imgDataRef = useRef(null);
   const speedRef = useRef(speed);
   const mouseRef = useRef({ x: 0.5, y: 0.5, targetX: 0.5, targetY: 0.5 });
@@ -302,7 +369,9 @@ export default function MetallicPaint({
     const canvas = canvasRef.current;
     if (!canvas) return false;
 
-    const gl = canvas.getContext('webgl2', { antialias: true, alpha: true });
+    // No MSAA: a full-viewport quad has no edges for it to smooth, so the
+    // multisampled buffer was memory spent on nothing.
+    const gl = canvas.getContext('webgl2', { antialias: false, alpha: true });
     if (!gl) return false;
 
     const compile = (src, type) => {
@@ -383,17 +452,44 @@ export default function MetallicPaint({
 
     const canvas = canvasRef.current;
     const gl = glRef.current;
-    const side = 1000 * devicePixelRatio;
-    canvas.width = side;
-    canvas.height = side;
-    gl.viewport(0, 0, side, side);
+
+    // Square, like the fixed store it replaces: `u_ratio` is pinned to 1 and
+    // `object-fit: contain` letterboxes it into a box of any other shape.
+    const resize = () => {
+      const { width, height } = canvas.getBoundingClientRect();
+      const box = Math.min(width, height);
+      if (box <= 0) return;
+      const side = Math.min(
+        MAX_SIDE,
+        Math.ceil(box * (window.devicePixelRatio || 1) * SUPERSAMPLE)
+      );
+      if (canvas.width === side && canvas.height === side) return;
+      canvas.width = side;
+      canvas.height = side;
+      gl.viewport(0, 0, side, side);
+    };
+
+    resize();
+    resizeRef.current = resize;
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resize);
+    observer?.observe(canvas);
 
     setReady(true);
 
     return () => {
+      observer?.disconnect();
+      resizeRef.current = null;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (textureRef.current && glRef.current) {
         glRef.current.deleteTexture(textureRef.current);
+      }
+      // Hand the context back now rather than whenever the collector finds
+      // it; every page mounts its own navbar, and browsers cap live contexts.
+      // Only once the canvas has really left the page — Strict Mode runs this
+      // cleanup on a canvas it is about to reuse, and `getContext` would hand
+      // back the lost context.
+      if (!canvas.isConnected) {
+        gl.getExtension('WEBGL_lose_context')?.loseContext();
       }
     };
   }, [initGL]);
@@ -401,15 +497,22 @@ export default function MetallicPaint({
   useEffect(() => {
     if (!ready || !imageSrc) return;
 
+    let cancelled = false;
     setTextureReady(false);
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const imgData = processImage(img);
-      uploadTexture(imgData);
-      setTextureReady(true);
+
+    loadDepthMap(imageSrc).then(
+      imgData => {
+        if (cancelled) return;
+        uploadTexture(imgData);
+        setTextureReady(true);
+      },
+      // The canvas never paints, which leaves the plain glyph underneath.
+      () => undefined
+    );
+
+    return () => {
+      cancelled = true;
     };
-    img.src = imageSrc;
   }, [ready, imageSrc, uploadTexture]);
 
   useEffect(() => {
@@ -494,11 +597,36 @@ export default function MetallicPaint({
       rafRef.current = requestAnimationFrame(render);
     };
 
-    lastTimeRef.current = performance.now();
-    rafRef.current = requestAnimationFrame(render);
+    // The loop only runs while the canvas is actually on screen. A hidden or
+    // scrolled-away canvas still costs a full draw per frame otherwise — the
+    // browser executes WebGL work whether or not anything composites it.
+    const start = () => {
+      if (rafRef.current) return;
+      resizeRef.current?.();
+      lastTimeRef.current = performance.now();
+      rafRef.current = requestAnimationFrame(render);
+    };
+
+    const stop = () => {
+      if (!rafRef.current) return;
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
+
+    let visibility = null;
+    if (typeof IntersectionObserver === 'undefined') {
+      start();
+    } else {
+      visibility = new IntersectionObserver(([entry]) => {
+        if (entry?.isIntersecting) start();
+        else stop();
+      });
+      visibility.observe(canvas);
+    }
 
     return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      visibility?.disconnect();
+      stop();
       canvas.removeEventListener('mousemove', handleMouseMove);
     };
   }, [ready, textureReady]);

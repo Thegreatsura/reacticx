@@ -399,6 +399,14 @@ export const scaffoldData: Record<string, ScaffoldEntry> = {
     icon: "BadgeCheck",
     description: "A verified badge with a light sweeping across it on a loop",
   },
+
+  "circular-status-bar-iphone-duo": {
+    category: "micro-interactions",
+    title: "Circular Status Bar iPhone Duo",
+    icon: "Signal",
+    description:
+      "iPhone status bar glyphs that morph into a circular arc and back on a loop",
+  },
 };
 
 /**
